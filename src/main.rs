@@ -19,6 +19,11 @@ use std::fs;
 const AIRPORT_FIELDS: usize = 18;
 
 // import ourairports module and all structs
+/// Contains all of the structs of data types available from OurAirports
+/// as well as the methods used to instantiate one.
+///
+/// Dataset format information is from https://ourairports.com/help/data-dictionary.html
+/// with some modifications.
 mod ourairports;
 use ourairports::*;
 
