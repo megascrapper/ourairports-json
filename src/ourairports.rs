@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 /// Contains a record of a single airport.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Airport {
     /// Internal OurAirports integer identifier for the airport.
     /// This will stay persistent, even if the airport code changes.
