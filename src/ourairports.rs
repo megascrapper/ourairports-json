@@ -2,7 +2,7 @@ use serde::de::{self, Unexpected};
 use serde::{Deserialize, Deserializer, Serialize};
 
 /// Contains a record of a single airport.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Airport {
     /// Internal OurAirports integer identifier for the airport.
     /// This will stay persistent, even if the airport code changes.
@@ -54,66 +54,28 @@ pub struct Airport {
     keywords: Vec<String>,
 }
 
-impl Airport {
-    /// Creates a new instance of Airport
-    ///
-    /// The latitude and longitude value must be parsed before ping passed, and the altitude value bust be parsed and encapsulated in an `Option`.
-    pub fn new(
-        id: String,
-        ident: String,
-        airport_type: String,
-        name: String,
-        latitude_deg: f64,
-        longitude_deg: f64,
-        elevation_ft: Option<i32>,
-        continent: String,
-        iso_country: String,
-        iso_region: String,
-        municipality: String,
-        scheduled_service: String,
-        gps_code: String,
-        iata_code: String,
-        local_code: String,
-        home_link: String,
-        wikipedia_link: String,
-        keywords: String,
-    ) -> Airport {
-        Airport {
-            id,
-            ident,
-            airport_type,
-            name,
-            latitude_deg,
-            longitude_deg,
-            elevation_ft,
-            continent,
-            iso_country,
-            iso_region,
-            municipality,
-            scheduled_service: scheduled_service == "yes",
-            gps_code,
-            iata_code,
-            local_code,
-            home_link,
-            wikipedia_link,
-            keywords: to_vec_string(keywords),
-        }
-    }
-}
-
-fn to_vec_string(value: String) -> Vec<String> {
-    match value.len() {
-        0 => vec![],
-        _ => value.split(", ").map(|s| s.to_string()).collect(),
-    }
-}
-
-pub fn parse_option_i32(value: String) -> Option<i32> {
-    let parsed = value.parse();
-    match parsed {
-        Ok(num) => Some(num),
-        Err(_) => None,
-    }
+/// Contains information about a single airport radio frequency
+/// for voice communication (radio navigation aids appear in struct Navaids)
+#[derive(Deserialize, Serialize)]
+pub struct AirportFrequency {
+    /// Internal OurAirports integer identifier for the frequency.
+    /// This will stay persistent, even if the radio frequency or description changes.
+    id: String,
+    /// Internal integer foreign key matching the `id` column for the associated airport in Airports struct.
+    /// (`airport_ident` is a better alternative.)
+    airport_ref: String,
+    /// Externally-visible string foreign key matching the `ident` column for the associated airport in Airports.
+    airport_ident: String,
+    /// A code for the frequency type.
+    /// This isn't (currently) a controlled vocabulary, but probably will be soon.
+    /// Some common values are "TWR" (tower), "ATF" or "CTAF" (common traffic frequency), "GND" (ground control), "RMP" (ramp control), "ATIS" (automated weather), "RCO" (remote radio outlet), "ARR" (arrivals), "DEP" (departures), "UNICOM" (monitored ground station), and "RDO" (a flight-service station).
+    #[serde(rename = "type")]
+    frequency_type: String,
+    /// A description of the frequency, typically the way a pilot would open a call on it.
+    description: String,
+    /// Radio voice frequency in megahertz.
+    /// Note that the same frequency may appear multiple times for an airport, serving different functions.
+    frequency_mhz: String,
 }
 
 /// Converts a string to a boolean based on "yes" and "no"
@@ -132,10 +94,13 @@ where
 }
 
 /// Transforms a comma-separated string to a vector.
-fn vec_string_from_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error> where D: Deserializer<'de>,{
+fn vec_string_from_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
     let keywords = String::deserialize(deserializer)?;
     match keywords.len() {
         0 => Ok(vec![]),
-        _ => Ok(keywords.split(",").map(|s| s.to_string()).collect()),
+        _ => Ok(keywords.split(',').map(|s| s.to_string()).collect()),
     }
 }
