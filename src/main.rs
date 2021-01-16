@@ -89,6 +89,11 @@ fn convert_airport_data(file_path: &Option<std::path::PathBuf>, pretty_print: bo
     let mut airport_list: Vec<Airport> = Vec::new();
 
     // deserialize each record to a struct and add to list
+    for line in rdr.deserialize() {
+        let record: Airport = line?;
+        airport_list.push(record);
+    }
+    /*
     for line in rdr.records() {
         let record = line?;
         // Return error if the number of fields do not match
@@ -140,6 +145,7 @@ fn convert_airport_data(file_path: &Option<std::path::PathBuf>, pretty_print: bo
             keywords,
         ));
     }
+    */
 
     // convert to json
     if !pretty_print {

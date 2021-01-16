@@ -12,6 +12,7 @@ pub struct Airport {
     ident: String,
     /// The type of the airport.
     /// Allowed values are "closed_airport", "heliport", "large_airport", "medium_airport", "seaplane_base", and "small_airport".
+    #[serde(rename = "type")]
     airport_type: String,
     /// The official airport name, including "Airport", "Airstrip", etc.
     name: String,
@@ -34,10 +35,11 @@ pub struct Airport {
     /// Note that this is *not* necessarily the municipality where the airport is physically located.
     municipality: String,
     /// true if the airport currently has scheduled airline service; false otherwise.
+    #[serde(deserialize_with = "bool_from_str")]
     scheduled_service: bool,
     /// The code that an aviation GPS database (such as Jeppesen's or Garmin's) would normally use for the airport. This will always be the ICAO code if one exists.
     /// Note that, unlike the `ident` column, this is *not* guaranteed to be globally unique.
-    gps: String,
+    gps_code: String,
     /// The three-letter IATA code for the airport (if it has one).
     iata_code: String,
     /// The local country code for the airport, if different from the `gps_code` and `iata_code` fields (used mainly for US airports).
@@ -45,9 +47,10 @@ pub struct Airport {
     /// URL of the airport's official home page on the web, if one exists.
     home_link: String,
     /// URL of the airport's page on Wikipedia, if one exists.
-    wikiepdia_link: String,
+    wikipedia_link: String,
     /// Extra keywords/phrases to assist with search, as a Vec.
     /// May include former names for the airport, alternate codes, names in other languages, nearby tourist destinations, etc.
+    #[serde(deserialize_with = "vec_string_from_string")]
     keywords: Vec<String>,
 }
 
@@ -68,11 +71,11 @@ impl Airport {
         iso_region: String,
         municipality: String,
         scheduled_service: String,
-        gps: String,
+        gps_code: String,
         iata_code: String,
         local_code: String,
         home_link: String,
-        wikiepdia_link: String,
+        wikipedia_link: String,
         keywords: String,
     ) -> Airport {
         Airport {
@@ -88,11 +91,11 @@ impl Airport {
             iso_region,
             municipality,
             scheduled_service: scheduled_service == "yes",
-            gps,
+            gps_code,
             iata_code,
             local_code,
             home_link,
-            wikiepdia_link,
+            wikipedia_link,
             keywords: to_vec_string(keywords),
         }
     }
