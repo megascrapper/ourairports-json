@@ -1,9 +1,12 @@
 //! ourairports
 //! Converts data from OurAirports to JSON format.
-//! At the moment, You need to download the data on your own from
-//! [OurAirports website](https://ourairports.com/data/) by yourself. Automatic downloading may
-//! be implemented in the future.
 
+/**
+ * TODO
+ * use serde deserialize (see sandbox copy for implementation)
+ * other data types
+ * tests
+ */
 extern crate anyhow;
 extern crate clap;
 extern crate csv;
@@ -17,6 +20,9 @@ use std::fs;
 
 /// Number of fields in airport data
 const AIRPORT_FIELDS: usize = 18;
+
+/// Airport data URL
+const AIRPORT_URL: &str = "https://ourairports.com/data/airports.csv";
 
 // import ourairports module and all structs
 /// Contains all of the structs of data types available from OurAirports
@@ -35,7 +41,7 @@ enum Cli {
     Airport {
         #[clap(parse(from_os_str))]
         /// Airport data file from openflights
-        input_file: std::path::PathBuf,
+        input_file: Option<std::path::PathBuf>,
         #[clap(short = 'o', long = "output")]
         /// Output file
         output_file: Option<std::path::PathBuf>,
@@ -45,12 +51,39 @@ enum Cli {
     },
 }
 
+/// Request data type
+enum RequestType {
+    Airport,
+}
+
+/// Reads the csv data from a local file or the internet
+#[tokio::main]
+async fn read_text(file_path: &Option<std::path::PathBuf>, request_type: RequestType) -> Result<String> {
+    if let Some(path) = file_path {
+        println!("Reading file {}", path.to_string_lossy());
+        let content = fs::read_to_string(&path).with_context(|| format!("Could not open file: {}", path.to_string_lossy()))?;
+        Ok(content)
+    } else {
+        match request_type {
+            RequestType::Airport => {
+                println!("Downloading from {}", AIRPORT_URL);
+                let resp = reqwest::get(AIRPORT_URL)
+                .await
+                .with_context(|| format!("Could not open page: {}",AIRPORT_URL))?
+                .text()
+                .await?;
+                Ok(resp)
+            },
+        }
+    }
+}
+
 /// Converts airport data to JSON
-fn convert_airport_data(file_path: &std::path::PathBuf, pretty_print: bool) -> Result<String> {
+fn convert_airport_data(file_path: &Option<std::path::PathBuf>, pretty_print: bool) -> Result<String> {
     // read original file as csv
-    let mut rdr = csv::ReaderBuilder::new()
-        .from_path(file_path)
-        .with_context(|| format!("Could not read file: {}", &file_path.to_string_lossy()))?;
+    let data = read_text(&file_path, RequestType::Airport)?;
+    println!("Converting data");
+    let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     // plane list
     let mut airport_list: Vec<Airport> = Vec::new();

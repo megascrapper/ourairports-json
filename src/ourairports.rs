@@ -1,7 +1,8 @@
-use serde::{Serialize, Deserialize};
+use serde::de::{self, Unexpected};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Contains a record of a single airport.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Airport {
     /// Internal OurAirports integer identifier for the airport.
     /// This will stay persistent, even if the airport code changes.
@@ -41,7 +42,7 @@ pub struct Airport {
     iata_code: String,
     /// The local country code for the airport, if different from the `gps_code` and `iata_code` fields (used mainly for US airports).
     local_code: String,
-    /// 	URL of the airport's official home page on the web, if one exists.
+    /// URL of the airport's official home page on the web, if one exists.
     home_link: String,
     /// URL of the airport's page on Wikipedia, if one exists.
     wikiepdia_link: String,
@@ -109,5 +110,29 @@ pub fn parse_option_i32(value: String) -> Option<i32> {
     match parsed {
         Ok(num) => Some(num),
         Err(_) => None,
+    }
+}
+
+/// Converts a string to a boolean based on "yes" and "no"
+fn bool_from_str<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match String::deserialize(deserializer)?.to_lowercase().as_str() {
+        "yes" => Ok(true),
+        "no" => Ok(false),
+        other => Err(de::Error::invalid_value(
+            Unexpected::Str(other),
+            &"Value must be yes or no",
+        )),
+    }
+}
+
+/// Transforms a comma-separated string to a vector.
+fn vec_string_from_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error> where D: Deserializer<'de>,{
+    let keywords = String::deserialize(deserializer)?;
+    match keywords.len() {
+        0 => Ok(vec![]),
+        _ => Ok(keywords.split(",").map(|s| s.to_string()).collect()),
     }
 }
