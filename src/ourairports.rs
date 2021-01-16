@@ -78,14 +78,66 @@ pub struct AirportFrequency {
     frequency_mhz: String,
 }
 
+/// Contains information about a single landing surface
+#[derive(Deserialize, Serialize)]
+pub struct Runway {
+    /// Internal OurAirports integer identifier for the runway.
+    /// This will stay persistent, even if the runway numbering changes.
+    id: String,
+    /// Internal integer foreign key matching the id column for the associated airport in airports.csv. (`airport_ident` is a better alternative.)
+    airport_ref: String,
+    /// Externally-visible string foreign key matching the ident column for the associated airport in airports.csv.
+    airport_ident: String,
+    /// Length of the full runway surface (including displaced thresholds, overrun areas, etc) in feet.
+    length_ft: Option<u32>,
+    /// Width of the runway surface in feet.
+    width_ft: Option<u32>,
+    /// Code for the runway surface type.
+    /// This is not yet a controlled vocabulary, but probably will be soon.
+    /// Some common values include "ASP" (asphalt), "TURF" (turf), "CON" (concrete), "GRS" (grass), "GRE" (gravel), "WATER" (water), and "UNK" (unknown).
+    surface: String,
+    /// `true` if the surface is lighted at night. `false` otherwise.
+    #[serde(deserialize_with = "bool_from_str")]
+    lighted: bool,
+    /// `true` if the runway surface is currently closed, `false` otherwise.
+    #[serde(deserialize_with = "bool_from_str")]
+    closed: bool,
+    /// Identifier for the low-numbered end of the runway.
+    le_ident: String,
+    /// Latitude of the centre of the low-numbered end of the runway, in decimal degrees (positive is north), if available.
+    le_latitude_deg: Option<f64>,
+    /// Longitude of the centre of the low-numbered end of the runway, in decimal degrees (positive is east), if available.
+    le_longitude_deg: Option<f64>,
+    /// Elevation above MSL of the low-numbered end of the runway in feet.
+    le_elevation_ft: Option<i32>,
+    /// Heading of the low-numbered end of the runway in degrees true (*not* magnetic).
+    #[serde(rename = "le_heading_degT")]
+    le_heading_deg_true: Option<f64>,
+    /// Length of the displaced threshold (if any) for the low-numbered end of the runway, in feet.
+    le_displaced_threshold_ft: Option<i32>,
+    /// Identifier for the high-numbered end of the runway.
+    he_ident: String,
+    /// Latitude of the centre of the high-numbered end of the runway, in decimal degrees (positive is north), if available.
+    he_latitude_deg: Option<f64>,
+    /// Longitude of the centre of the high-numbered end of the runway, in decimal degrees (positive is east), if available.
+    he_longitude_deg: Option<f64>,
+    /// Elevation above MSL of the high-numbered end of the runway in feet.
+    he_elevation_ft: Option<i32>,
+    #[serde(rename = "he_heading_degT")]
+    /// Heading of the high-numbered end of the runway in degrees true (*not* magnetic).
+    he_heading_deg_true: Option<f64>,
+    /// Length of the displaced threshold (if any) for the high-numbered end of the runway, in feet.
+    he_displaced_threshold_ft: Option<i32>,
+}
+
 /// Converts a string to a boolean based on "yes" and "no"
 fn bool_from_str<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: Deserializer<'de>,
 {
     match String::deserialize(deserializer)?.to_lowercase().as_str() {
-        "yes" => Ok(true),
-        "no" => Ok(false),
+        "yes" | "1"=> Ok(true),
+        "no" | "0" => Ok(false),
         other => Err(de::Error::invalid_value(
             Unexpected::Str(other),
             &"Value must be yes or no",

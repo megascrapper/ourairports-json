@@ -24,6 +24,18 @@ const AIRPORT_URL: &str = "https://ourairports.com/data/airports.csv";
 /// Airport frequency data URL
 const AIRPORT_FREQUENCY_URL: &str = "https://ourairports.com/data/airport-frequencies.csv";
 
+/// Runway data URL
+const RUNWAY_URL: &str = "https://ourairports.com/data/runways.csv";
+
+/// navaid data URL
+const NAVAID_URL: &str = "https://ourairports.com/data/navaids.csv";
+
+/// country data URL
+const COUNTRY_URL: &str = "https://ourairports.com/data/countries.csv";
+
+/// region data URL
+const REGION_URL: &str = "https://ourairports.com/data/regions.csv";
+
 // import ourairports module and all structs
 /// Contains all of the structs of data types available from OurAirports
 /// as well as the methods used to instantiate one.
@@ -61,12 +73,28 @@ enum Cli {
         #[clap(short = 'p', long = "pretty-print")]
         pretty_print: bool,
     },
+    /// Convert runway data
+    Runway {
+        #[clap(parse(from_os_str))]
+        /// Airport data file from openflights
+        input_file: Option<std::path::PathBuf>,
+        #[clap(short = 'o', long = "output")]
+        /// Output file
+        output_file: Option<std::path::PathBuf>,
+        /// Pretty print output
+        #[clap(short = 'p', long = "pretty-print")]
+        pretty_print: bool,
+    },
 }
 
 /// Request data type
 enum RequestType {
     Airport,
     AirportFrequency,
+    Runway,
+    Navaid,
+    Country,
+    Region,
 }
 
 /// Reads the csv data from a local file or the internet
@@ -81,26 +109,21 @@ async fn read_text(
             .with_context(|| format!("Could not open file: {}", path.to_string_lossy()))?;
         Ok(content)
     } else {
-        match request_type {
-            RequestType::Airport => {
-                println!("Downloading from {}", AIRPORT_URL);
-                let resp = reqwest::get(AIRPORT_URL)
-                    .await
-                    .with_context(|| format!("Could not open page: {}", AIRPORT_URL))?
-                    .text()
-                    .await?;
-                Ok(resp)
-            },
-            RequestType::AirportFrequency => {
-                println!("Downloading from {}", AIRPORT_FREQUENCY_URL);
-                let resp = reqwest::get(AIRPORT_FREQUENCY_URL)
-                    .await
-                    .with_context(|| format!("Could not open page: {}", AIRPORT_FREQUENCY_URL))?
-                    .text()
-                    .await?;
-                Ok(resp)
-            }
-        }
+        let url = match request_type {
+            RequestType::Airport => AIRPORT_URL,
+            RequestType::AirportFrequency => AIRPORT_FREQUENCY_URL,
+            RequestType::Runway => RUNWAY_URL,
+            RequestType::Navaid => NAVAID_URL,
+            RequestType::Country => COUNTRY_URL,
+            RequestType::Region => REGION_URL,
+        };
+        println!("Downloading from {}", url);
+        let resp = reqwest::get(url)
+            .await
+            .with_context(|| format!("Could not open page: {}", url))?
+            .text()
+            .await?;
+            Ok(resp)
     }
 }
 
@@ -157,6 +180,30 @@ fn convert_airport_frequency_data(
     }
 }
 
+/// Converts airport runway data to JSON
+fn convert_runway_data(
+    file_path: &Option<std::path::PathBuf>,
+    pretty_print: bool,
+) -> Result<String> {
+    let data = read_text(&file_path, RequestType::Runway)?;
+    println!("Converting data");
+    let mut rdr = csv::Reader::from_reader(data.as_bytes());
+
+    let mut runway_list: Vec<Runway> = Vec::new();
+    for line in rdr.deserialize() {
+        let record: Runway = line?;
+        runway_list.push(record);
+    }
+
+    if !pretty_print {
+        let json_out = serde_json::to_string(&runway_list)?;
+        Ok(json_out)
+    } else {
+        let json_out = serde_json::to_string_pretty(&runway_list)?;
+        Ok(json_out)
+    }
+}
+
 fn main() -> Result<()> {
     // setup panic handler
     setup_panic!();
@@ -194,7 +241,24 @@ fn main() -> Result<()> {
                     convert_airport_frequency_data(&input_file, pretty_print)?
                 );
             }
-        }
+        },
+        Cli::Runway {
+            input_file,
+            output_file,
+            pretty_print,
+        } => {
+            if let Some(output_path) = output_file {
+                fs::write(
+                    output_path,
+                    convert_runway_data(&input_file, pretty_print)?,
+                )?;
+            } else {
+                println!(
+                    "{}",
+                    convert_runway_data(&input_file, pretty_print)?
+                );
+            }
+        },
     }
 
     Ok(())
