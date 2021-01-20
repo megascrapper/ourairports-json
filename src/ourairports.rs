@@ -130,6 +130,100 @@ pub struct Runway {
     he_displaced_threshold_ft: Option<i32>,
 }
 
+/// Represents a single radio navigation
+#[derive(Deserialize, Serialize)]
+pub struct Navaid {
+    /// Internal OurAirports integer identifier for the navaid.
+    /// This will stay persistent, even if the navaid identifier or frequency changes.
+    id: String,
+    /// This is a unique string identifier constructed from the navaid name and country, and used in the OurAirports URL.
+    filename: String,
+    /// The 1-3 character identifer that the navaid transmits.
+    ident: String,
+    /// The name of the navaid, excluding its type.
+    name: String,
+    /// The type of the navaid. Options are "DME", "NDB", "NDB-DME", "TACAN", "VOR", "VOR-DME", or "VORTAC".
+    /// See the [map legend](https://ourairports.com/help/data-dictionary.html#navaids) for more information about each type.
+    #[serde(rename = "type")]
+    navaid_type: String,
+    /// The frequency of the navaid in *kilohertz*.
+    /// If the Navaid operates on the VHF band (VOR, VOR-DME) or operates on the UHF band with a paired VHF frequency (DME, TACAN, VORTAC), then you need to divide this number by 1,000 to get the frequency in megahertz (115.3 MHz in this example).
+    /// For an NDB or NDB-DME, you can use this frequency directly.
+    frequency_khz: String,
+    /// The latitude of the navaid in decimal degrees (negative for south).
+    latitude_deg: Option<f64>,
+    /// The longitude of the navaid in decimal degrees (negative for west).
+    longitude_deg: Option<f64>,
+    /// The navaid's elevation MSL in feet (not metres).
+    elevation_ft: Option<i32>,
+    /// The two-character [ISO 3166:1-alpha2 code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes) for the country that operates the navaid.
+    /// A handful of unofficial, non-ISO codes are also in use, such as "XK" for [Kosovo](https://ourairports.com/countries/XK/).
+    iso_country: String,
+    /// The paired VHF frequency for the DME (or TACAN) in kilohertz.
+    /// Divide by 1,000 to get the paired VHF frequency in megahertz (e.g. 115.3 MHz).
+    dme_frequency_khz: String,
+    /// The DME channel (an alternative way of tuning distance-measuring equipment)
+    dme_channel: String,
+    /// The latitude of the associated DME in decimal degrees (negative for south). If missing, assume that the value is the same as `latitude_deg`.
+    dme_latitude_deg: Option<f64>,
+    /// The longitude of the associated DME in decimal degrees (negative for west). If missing, assume that the value is the same as `longitude_deg`.
+    dme_longitude_deg: Option<f64>,
+    /// The associated DME transmitters elevation MSL in feet. If missing, assume that it's the same value as `elevation_ft`.
+    dme_elevation_ft: Option<i32>,
+    /// The magnetic variation adjustment built into a VOR's, VOR-DME's, or TACAN's radials. Positive means east (added to the true direction), and negative means west (subtracted from the true direction).
+    /// This will not usually be the same as `magnetic_variation_deg` because the magnetic pole is constantly in motion.
+    slaved_variation_deg: Option<f64>,
+    /// The actual magnetic variation at the navaid's location. Positive means east (added to the true direction), and negative means west (subtracted from the true direction),
+    magnetic_variation_deg: Option<f64>,
+    /// The primary function of the navaid in the airspace system.
+    /// Options include "HI" (high-altitude airways, at or above flight level 180), "LO" (low-altitude airways), "BOTH" (high- and low-altitude airways), "TERM" (terminal-area navigation only), and "RNAV" (non-GPS area navigation).
+    #[serde(rename = "usageType")]
+    usage_type: String,
+    /// The power-output level of the navaid.
+    /// Options include "HIGH", "MEDIUM", "LOW", and "UNKNOWN".
+    power: String,
+    /// The OurAirports text identifier (usually the ICAO code) for an airport associated with the navaid.
+    /// Links to the `ident` column in airports.csv.
+    associated_airport: String,
+}
+
+/// Represents a country or country-like entity (e.g. Hong Kong)
+#[derive(Deserialize, Serialize)]
+pub struct Country {
+    /// Internal OurAirports integer identifier for the country.
+    /// This will stay persistent, even if the country name or code changes.
+    id: String,
+    /// The two-character [ISO 3166:1-alpha2 code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes) for the country that operates the navaid.
+    /// A handful of unofficial, non-ISO codes are also in use, such as "XK" for [Kosovo](https://ourairports.com/countries/XK/).
+    /// The `iso_country` field in airports.csv points into this field.
+    code: String,
+    /// The common **English**-language name for the country.
+    /// Other variations of the name may appear in the `keywords` field to assist with search.
+    name: String,
+    /// The code for the continent where the country is (primarily) located.
+    /// See the `continent` code in airports.csv for allowed values.
+    continent: String,
+    /// Link to the Wikipedia article about the country.
+    wikipedia_link: String,
+    /// An array of search keywords/phrases related to the country.
+    #[serde(deserialize_with = "vec_string_from_string")]
+    keywords: Vec<String>,
+}
+
+/// Represents a high-level administrative subdivision of a country
+#[derive(Deserialize, Serialize)]
+pub struct Region {
+    id: String,
+    code: String,
+    local_code: String,
+    name: String,
+    continent: String,
+    iso_country: String,
+    wikipedia_link: String,
+    #[serde(deserialize_with = "vec_string_from_string")]
+    keywords: Vec<String>,
+}
+
 /// Converts a string to a boolean based on "yes" and "no"
 fn bool_from_str<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
@@ -153,6 +247,6 @@ where
     let keywords = String::deserialize(deserializer)?;
     match keywords.len() {
         0 => Ok(vec![]),
-        _ => Ok(keywords.split(',').map(|s| s.to_string()).collect()),
+        _ => Ok(keywords.split(',').map(|s| s.trim().to_string()).collect()),
     }
 }

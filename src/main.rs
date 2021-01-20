@@ -3,9 +3,9 @@
 
 /**
  * TODO
- * use serde deserialize (see sandbox copy for implementation)
- * other data types
  * tests
+ * example code
+ * turn this to a library
  */
 extern crate anyhow;
 extern crate clap;
@@ -85,6 +85,42 @@ enum Cli {
         #[clap(short = 'p', long = "pretty-print")]
         pretty_print: bool,
     },
+    /// Convert navaid data
+    Navaid {
+        #[clap(parse(from_os_str))]
+        /// Airport data file from openflights
+        input_file: Option<std::path::PathBuf>,
+        #[clap(short = 'o', long = "output")]
+        /// Output file
+        output_file: Option<std::path::PathBuf>,
+        /// Pretty print output
+        #[clap(short = 'p', long = "pretty-print")]
+        pretty_print: bool,
+    },
+    /// Convert country data
+    Country {
+        #[clap(parse(from_os_str))]
+        /// Airport data file from openflights
+        input_file: Option<std::path::PathBuf>,
+        #[clap(short = 'o', long = "output")]
+        /// Output file
+        output_file: Option<std::path::PathBuf>,
+        /// Pretty print output
+        #[clap(short = 'p', long = "pretty-print")]
+        pretty_print: bool,
+    },
+    /// Convert region data
+    Region {
+        #[clap(parse(from_os_str))]
+        /// Airport data file from openflights
+        input_file: Option<std::path::PathBuf>,
+        #[clap(short = 'o', long = "output")]
+        /// Output file
+        output_file: Option<std::path::PathBuf>,
+        /// Pretty print output
+        #[clap(short = 'p', long = "pretty-print")]
+        pretty_print: bool,
+    },
 }
 
 /// Request data type
@@ -123,7 +159,7 @@ async fn read_text(
             .with_context(|| format!("Could not open page: {}", url))?
             .text()
             .await?;
-            Ok(resp)
+        Ok(resp)
     }
 }
 
@@ -180,7 +216,7 @@ fn convert_airport_frequency_data(
     }
 }
 
-/// Converts airport runway data to JSON
+/// Converts runway data to JSON
 fn convert_runway_data(
     file_path: &Option<std::path::PathBuf>,
     pretty_print: bool,
@@ -200,6 +236,78 @@ fn convert_runway_data(
         Ok(json_out)
     } else {
         let json_out = serde_json::to_string_pretty(&runway_list)?;
+        Ok(json_out)
+    }
+}
+
+/// Converts navaid data to JSON
+fn convert_navaid_data(
+    file_path: &Option<std::path::PathBuf>,
+    pretty_print: bool,
+) -> Result<String> {
+    let data = read_text(&file_path, RequestType::Navaid)?;
+    println!("Converting data");
+    let mut rdr = csv::Reader::from_reader(data.as_bytes());
+
+    let mut navaid_list: Vec<Navaid> = Vec::new();
+    for line in rdr.deserialize() {
+        let record: Navaid = line?;
+        navaid_list.push(record);
+    }
+
+    if !pretty_print {
+        let json_out = serde_json::to_string(&navaid_list)?;
+        Ok(json_out)
+    } else {
+        let json_out = serde_json::to_string_pretty(&navaid_list)?;
+        Ok(json_out)
+    }
+}
+
+/// Converts country data to JSON
+fn convert_country_data(
+    file_path: &Option<std::path::PathBuf>,
+    pretty_print: bool,
+) -> Result<String> {
+    let data = read_text(&file_path, RequestType::Country)?;
+    println!("Converting data");
+    let mut rdr = csv::Reader::from_reader(data.as_bytes());
+
+    let mut country_list: Vec<Country> = Vec::new();
+    for line in rdr.deserialize() {
+        let record: Country = line?;
+        country_list.push(record);
+    }
+
+    if !pretty_print {
+        let json_out = serde_json::to_string(&country_list)?;
+        Ok(json_out)
+    } else {
+        let json_out = serde_json::to_string_pretty(&country_list)?;
+        Ok(json_out)
+    }
+}
+
+/// Converts region data to JSON
+fn convert_region_data(
+    file_path: &Option<std::path::PathBuf>,
+    pretty_print: bool,
+) -> Result<String> {
+    let data = read_text(&file_path, RequestType::Region)?;
+    println!("Converting data");
+    let mut rdr = csv::Reader::from_reader(data.as_bytes());
+
+    let mut region_list: Vec<Region> = Vec::new();
+    for line in rdr.deserialize() {
+        let record: Region = line?;
+        region_list.push(record);
+    }
+
+    if !pretty_print {
+        let json_out = serde_json::to_string(&region_list)?;
+        Ok(json_out)
+    } else {
+        let json_out = serde_json::to_string_pretty(&region_list)?;
         Ok(json_out)
     }
 }
@@ -241,22 +349,49 @@ fn main() -> Result<()> {
                     convert_airport_frequency_data(&input_file, pretty_print)?
                 );
             }
-        },
+        }
         Cli::Runway {
             input_file,
             output_file,
             pretty_print,
         } => {
             if let Some(output_path) = output_file {
-                fs::write(
-                    output_path,
-                    convert_runway_data(&input_file, pretty_print)?,
-                )?;
+                fs::write(output_path, convert_runway_data(&input_file, pretty_print)?)?;
             } else {
-                println!(
-                    "{}",
-                    convert_runway_data(&input_file, pretty_print)?
-                );
+                println!("{}", convert_runway_data(&input_file, pretty_print)?);
+            }
+        },
+        Cli::Navaid {
+            input_file,
+            output_file,
+            pretty_print,
+        } => {
+            if let Some(output_path) = output_file {
+                fs::write(output_path, convert_navaid_data(&input_file, pretty_print)?)?;
+            } else {
+                println!("{}", convert_navaid_data(&input_file, pretty_print)?);
+            }
+        },
+        Cli::Country {
+            input_file,
+            output_file,
+            pretty_print,
+        } => {
+            if let Some(output_path) = output_file {
+                fs::write(output_path, convert_country_data(&input_file, pretty_print)?)?;
+            } else {
+                println!("{}", convert_country_data(&input_file, pretty_print)?);
+            }
+        },
+        Cli::Region {
+            input_file,
+            output_file,
+            pretty_print,
+        } => {
+            if let Some(output_path) = output_file {
+                fs::write(output_path, convert_region_data(&input_file, pretty_print)?)?;
+            } else {
+                println!("{}", convert_region_data(&input_file, pretty_print)?);
             }
         },
     }
