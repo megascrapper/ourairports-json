@@ -6,6 +6,7 @@
  * tests
  * example code
  * turn this to a library
+ * condense the code somehow
  */
 extern crate anyhow;
 extern crate clap;
@@ -140,7 +141,7 @@ async fn read_text(
     request_type: RequestType,
 ) -> Result<String> {
     if let Some(path) = file_path {
-        println!("Reading file {}", path.to_string_lossy());
+        eprintln!("Reading file {}", path.to_string_lossy());
         let content = fs::read_to_string(&path)
             .with_context(|| format!("Could not open file: {}", path.to_string_lossy()))?;
         Ok(content)
@@ -153,7 +154,7 @@ async fn read_text(
             RequestType::Country => COUNTRY_URL,
             RequestType::Region => REGION_URL,
         };
-        println!("Downloading from {}", url);
+        eprintln!("Downloading from {}", url);
         let resp = reqwest::get(url)
             .await
             .with_context(|| format!("Could not open page: {}", url))?
@@ -170,10 +171,10 @@ fn convert_airport_data(
 ) -> Result<String> {
     // read original file as csv
     let data = read_text(&file_path, RequestType::Airport)?;
-    println!("Converting data");
+    eprintln!("Converting data");
     let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
-    // plane list
+    // airport list
     let mut airport_list: Vec<Airport> = Vec::new();
 
     // deserialize each record to a struct and add to list
@@ -198,7 +199,7 @@ fn convert_airport_frequency_data(
     pretty_print: bool,
 ) -> Result<String> {
     let data = read_text(&file_path, RequestType::AirportFrequency)?;
-    println!("Converting data");
+    eprintln!("Converting data");
     let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     let mut airport_frequency_list: Vec<AirportFrequency> = Vec::new();
@@ -222,7 +223,7 @@ fn convert_runway_data(
     pretty_print: bool,
 ) -> Result<String> {
     let data = read_text(&file_path, RequestType::Runway)?;
-    println!("Converting data");
+    eprintln!("Converting data");
     let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     let mut runway_list: Vec<Runway> = Vec::new();
@@ -246,7 +247,7 @@ fn convert_navaid_data(
     pretty_print: bool,
 ) -> Result<String> {
     let data = read_text(&file_path, RequestType::Navaid)?;
-    println!("Converting data");
+    eprintln!("Converting data");
     let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     let mut navaid_list: Vec<Navaid> = Vec::new();
@@ -270,7 +271,7 @@ fn convert_country_data(
     pretty_print: bool,
 ) -> Result<String> {
     let data = read_text(&file_path, RequestType::Country)?;
-    println!("Converting data");
+    eprintln!("Converting data");
     let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     let mut country_list: Vec<Country> = Vec::new();
@@ -294,7 +295,7 @@ fn convert_region_data(
     pretty_print: bool,
 ) -> Result<String> {
     let data = read_text(&file_path, RequestType::Region)?;
-    println!("Converting data");
+    eprintln!("Converting data");
     let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     let mut region_list: Vec<Region> = Vec::new();
