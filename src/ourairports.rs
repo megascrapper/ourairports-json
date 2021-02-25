@@ -213,13 +213,26 @@ pub struct Country {
 /// Represents a high-level administrative subdivision of a country
 #[derive(Deserialize, Serialize)]
 pub struct Region {
+    /// Internal OurAirports integer identifier for the region. This will stay persistent, even if the region code changes.
     id: String,
+    /// `local_code` prefixed with the country code to make a globally-unique identifier.
     code: String,
+    /// The local code for the administrative subdivision.
+    /// Whenever possible, these are official [ISO 3166:2](https://en.wikipedia.org/wiki/ISO_3166-2), at the highest level available, but in some cases OurAirports has to use unofficial codes.
+    /// There is also a pseudo code "U-A" for each country, which means that the airport has not yet been assigned to a region (or perhaps can't be, as in the case of a deep-sea oil platform).
     local_code: String,
+    /// The common **English**-language name for the administrative subdivision.
+    /// In some cases, the name in local languages will appear in the `keywords` field assist search.
     name: String,
+    /// A code for the continent to which the region belongs.
+    /// See the `continent` field in airports.csv for a list of codes.
     continent: String,
+    /// The two-character [ISO 3166:1-alpha2 code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes) for the country containing the administrative subdivision.
+    /// A handful of unofficial, non-ISO codes are also in use, such as "XK" for [Kosovo](https://ourairports.com/countries/XK/).
     iso_country: String,
+    /// A link to the Wikipedia article describing the subdivision.
     wikipedia_link: String,
+    /// An array of keywords to assist with search. May include former names for the region, and/or the region name in other languages.
     #[serde(deserialize_with = "vec_string_from_string")]
     keywords: Vec<String>,
 }
