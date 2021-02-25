@@ -8,12 +8,6 @@
  * turn this to a library
  * condense the code somehow
  */
-extern crate anyhow;
-extern crate clap;
-extern crate csv;
-extern crate human_panic;
-extern crate serde;
-extern crate serde_json;
 use anyhow::{Context, Result};
 use clap::Clap;
 use human_panic::setup_panic;
@@ -143,7 +137,7 @@ async fn read_text(
     if let Some(path) = file_path {
         eprintln!("Reading file {}", path.to_string_lossy());
         let content = fs::read_to_string(&path)
-            .with_context(|| format!("Could not open file: {}", path.to_string_lossy()))?;
+            .context(format!("Could not open file: {}", path.to_string_lossy()))?;
         Ok(content)
     } else {
         let url = match request_type {
@@ -157,7 +151,7 @@ async fn read_text(
         eprintln!("Downloading from {}", url);
         let resp = reqwest::get(url)
             .await
-            .with_context(|| format!("Could not open page: {}", url))?
+            .context(format!("Could not open page: {}", url))?
             .text()
             .await?;
         Ok(resp)
